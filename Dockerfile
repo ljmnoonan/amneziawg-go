@@ -1,16 +1,22 @@
 FROM golang:1.24 as awg
 WORKDIR /build
 
+# These ARGs are automatically provided by buildx
+ARG TARGETPLATFORM
+ARG TARGETARCH
+
 # Copy and download dependencies first to leverage Docker layer caching
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-# Build a pure Go static binary. Disabling CGO avoids cross-compilation issues
-# with glibc/musl and produces a truly portable executable.
-# The output path is now explicit and correct.
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -v -o /build/amneziawg-go .
+# Build a pure Go static binary.
+# When the target architecture is arm64, we compile for GOOS=android, as this
+# binary is intended to be run on an Android device. For all other architectures,
+# we compile for GOOS=linux. This ensures the correct build tags are used.
+RUN if [ "$TARGETARCH" = "arm64" ]; then CGO_ENABLED=0 GOOS=android go build -ldflags="-s -w" -v -o /build/amneziawg-go .; \
+    else CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -v -o /build/amneziawg-go .; fi
 
 FROM alpine:3.19
 ARG AWGTOOLS_RELEASE="1.0.20241018"
