@@ -1,9 +1,11 @@
 FROM golang:1.24 as awg
+ARG TARGETARCH
+ARG TARGETOS
 COPY . /awg
 WORKDIR /awg
 RUN go mod download && \
     go mod verify && \
-    go build -ldflags '-linkmode external -extldflags "-fno-PIC -static"' -v -o /usr/bin
+    GOARCH=${TARGETARCH} GOOS=${TARGETOS} go build -ldflags '-linkmode external -extldflags "-fno-PIC -static"' -v -o /usr/bin/amneziawg-go
 
 FROM alpine:3.19
 ARG AWGTOOLS_RELEASE="1.0.20241018"
