@@ -19,11 +19,15 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -v -o /build/amneziawg-go .
 
 FROM alpine:3.19
-ARG AWGTOOLS_RELEASE="1.0.20241018"
-RUN apk --no-cache add iproute2 iptables bash && \
+RUN apk --no-cache add iproute2 iptables bash wget unzip && \
     cd /usr/bin/ && \
-    wget https://github.com/amnezia-vpn/amneziawg-tools/releases/download/v${AWGTOOLS_RELEASE}/alpine-3.19-amneziawg-tools.zip && \
-    unzip -j alpine-3.19-amneziawg-tools.zip && rm alpine-3.19-amneziawg-tools.zip && \
+    # Determine architecture to download the correct tools package.
+    arch=$(uname -m) && \
+    if [ "$arch" = "x86_64" ]; then arch="amd64"; fi && \
+    if [ "$arch" = "aarch64" ]; then arch="arm64"; fi && \
+    # Download the latest tools for the target architecture. This resolves the "Exec format error".
+    wget -q "https://github.com/amnezia-vpn/amneziawg-tools/releases/latest/download/alpine-3.19-amneziawg-tools-${arch}.zip" -O tools.zip && \
+    unzip -j tools.zip && rm tools.zip && \
     chmod +x /usr/bin/awg /usr/bin/awg-quick && \
     ln -s /usr/bin/awg /usr/bin/wg && \
     ln -s /usr/bin/awg-quick /usr/bin/wg-quick
