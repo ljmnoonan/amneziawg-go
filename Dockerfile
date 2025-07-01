@@ -11,12 +11,10 @@ RUN go mod download
 
 COPY . .
 
-# Build a pure Go static binary.
-# When the target architecture is arm64, we compile for GOOS=android, as this
-# binary is intended to be run on an Android device. For all other architectures,
-# we compile for GOOS=linux. This ensures the correct build tags are used.
-RUN if [ "$TARGETARCH" = "arm64" ]; then CGO_ENABLED=0 GOOS=android go build -ldflags="-s -w" -v -o /build/amneziawg-go .; \
-    else CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -v -o /build/amneziawg-go .; fi
+# Build a pure Go static binary for Linux.
+# The binary contains runtime checks to handle differences when running on Android.
+# This ensures the build process is identical for both amd64 and arm64.
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -v -o /build/amneziawg-go .
 
 FROM alpine:3.19
 ARG AWGTOOLS_RELEASE="1.0.20241018"
